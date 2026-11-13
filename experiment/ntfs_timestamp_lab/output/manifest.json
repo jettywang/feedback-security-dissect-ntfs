@@ -1,0 +1,170 @@
+{
+  "anchor_iso": "2017-11-13T09:00:00.000000000Z",
+  "record_size": 1024,
+  "segments": {
+    "40": {
+      "sequence": 1,
+      "reference_count": 1,
+      "name": "source.docx",
+      "note": "Original file; SI and FN agree."
+    },
+    "41": {
+      "sequence": 1,
+      "reference_count": 1,
+      "name": "copied.docx",
+      "note": "Metadata-preserving copy: SI inherited, FN re-stamped -> benign divergence."
+    },
+    "50": {
+      "sequence": 1,
+      "reference_count": 1,
+      "name": "renamed_final.txt",
+      "note": "Rename leaves SI and FN timestamps untouched; only the name component changes."
+    },
+    "60": {
+      "sequence": 1,
+      "reference_count": 2,
+      "name": "link_two.dat",
+      "note": "Hard link: shared SI, two FN entries, ReferenceCount=2."
+    },
+    "70": {
+      "sequence": 1,
+      "reference_count": 1,
+      "name": "stomped.xlsx",
+      "note": "SI backdated manually; FN retains the genuine creation time; SI ChangeTime is still real."
+    },
+    "80": {
+      "sequence": 2,
+      "reference_count": 1,
+      "name": "reused_now.csv",
+      "note": "Segment reused; current generation is 2, journal event references the dead generation 1."
+    }
+  },
+  "scenarios": [
+    {
+      "key": "copy",
+      "title": "Legitimate metadata-preserving copy",
+      "segments": [
+        40,
+        41
+      ],
+      "events": [
+        {
+          "usn": 100,
+          "segment": 41,
+          "sequence": 1,
+          "reason": 2147483904,
+          "timestamp_iso": "2017-11-13T09:02:00.067000100Z",
+          "name": "copied.docx"
+        }
+      ]
+    },
+    {
+      "key": "rename",
+      "title": "Same-volume rename",
+      "segments": [
+        50
+      ],
+      "events": [
+        {
+          "usn": 200,
+          "segment": 50,
+          "sequence": 1,
+          "reason": 2147487744,
+          "timestamp_iso": "2017-11-13T09:03:20.003133700Z",
+          "name": "renamed_old.txt"
+        },
+        {
+          "usn": 208,
+          "segment": 50,
+          "sequence": 1,
+          "reason": 2147491840,
+          "timestamp_iso": "2017-11-13T09:03:20.003133700Z",
+          "name": "renamed_final.txt"
+        }
+      ]
+    },
+    {
+      "key": "hardlink",
+      "title": "Hard link creation",
+      "segments": [
+        60
+      ],
+      "events": [
+        {
+          "usn": 300,
+          "segment": 60,
+          "sequence": 1,
+          "reason": 2147549184,
+          "timestamp_iso": "2017-11-13T09:05:00.000900900Z",
+          "name": "link_two.dat"
+        }
+      ]
+    },
+    {
+      "key": "timestomp",
+      "title": "Manual SI timestamp manipulation",
+      "segments": [
+        70
+      ],
+      "events": [
+        {
+          "usn": 400,
+          "segment": 70,
+          "sequence": 1,
+          "reason": 2147483904,
+          "timestamp_iso": "2017-11-13T09:06:40.000424200Z",
+          "name": "stomped.xlsx"
+        },
+        {
+          "usn": 410,
+          "segment": 70,
+          "sequence": 1,
+          "reason": 2147483649,
+          "timestamp_iso": "2017-11-13T09:06:50.000000000Z",
+          "name": "stomped.xlsx"
+        },
+        {
+          "usn": 500,
+          "segment": 70,
+          "sequence": 1,
+          "reason": 2147516416,
+          "timestamp_iso": "2017-11-13T09:08:20.080808000Z",
+          "name": "stomped.xlsx"
+        }
+      ]
+    },
+    {
+      "key": "stale_generation",
+      "title": "Deleted then reused MFT segment (generation mismatch)",
+      "segments": [
+        80
+      ],
+      "events": [
+        {
+          "usn": 600,
+          "segment": 80,
+          "sequence": 1,
+          "reason": 2147483904,
+          "timestamp_iso": "2017-11-13T09:10:00.000000000Z",
+          "name": "deleted_then.csv"
+        },
+        {
+          "usn": 700,
+          "segment": 80,
+          "sequence": 1,
+          "reason": 2147484160,
+          "timestamp_iso": "2017-11-13T09:11:40.000001100Z",
+          "name": "deleted_then.csv"
+        },
+        {
+          "usn": 800,
+          "segment": 80,
+          "sequence": 2,
+          "reason": 2147483904,
+          "timestamp_iso": "2017-11-13T09:13:20.000007700Z",
+          "name": "reused_now.csv"
+        }
+      ]
+    }
+  ]
+}

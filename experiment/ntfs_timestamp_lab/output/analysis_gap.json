@@ -1,0 +1,650 @@
+{
+  "journal": "usnjrnl_gap.bin",
+  "records": [
+    {
+      "segment": 5,
+      "generation": 5,
+      "reference_count": 1,
+      "is_directory": true,
+      "filenames": [
+        "."
+      ],
+      "si": {
+        "ticks": {
+          "creation": 131550372000000000,
+          "modification": 131550372000000000,
+          "change": 131550372000000000,
+          "access": 131550372000000000
+        },
+        "iso": {
+          "creation": "2017-11-13T09:00:00.000000000Z",
+          "modification": "2017-11-13T09:00:00.000000000Z",
+          "change": "2017-11-13T09:00:00.000000000Z",
+          "access": "2017-11-13T09:00:00.000000000Z"
+        },
+        "usn_field": 0
+      },
+      "file_name_attributes": [
+        {
+          "name": ".",
+          "flags": 1,
+          "parent_segment": 5,
+          "parent_generation": 5,
+          "ticks": {
+            "creation": 131550372000000000,
+            "modification": 131550372000000000,
+            "change": 131550372000000000,
+            "access": 131550372000000000
+          },
+          "iso": {
+            "creation": "2017-11-13T09:00:00.000000000Z",
+            "modification": "2017-11-13T09:00:00.000000000Z",
+            "change": "2017-11-13T09:00:00.000000000Z",
+            "access": "2017-11-13T09:00:00.000000000Z"
+          },
+          "delta_vs_si_ticks": {
+            "creation": 0,
+            "modification": 0,
+            "change": 0,
+            "access": 0
+          }
+        }
+      ],
+      "divergent_fields": [],
+      "hard_link_evidence": false,
+      "usn_events": [],
+      "stale_generation_alerts": [],
+      "stale_generation_events": [],
+      "journal_available_for_record": false,
+      "assessment": {
+        "hypotheses": [
+          {
+            "hypothesis": "SI and FN agree; no timestamp anomaly",
+            "confidence": "confirmed",
+            "basis": "all four field deltas are exactly 0 ticks"
+          }
+        ],
+        "definitive_history_claimable": true,
+        "note": "No SI/FN divergence."
+      }
+    },
+    {
+      "segment": 40,
+      "generation": 1,
+      "reference_count": 1,
+      "is_directory": false,
+      "filenames": [
+        "source.docx"
+      ],
+      "si": {
+        "ticks": {
+          "creation": 131550372000012345,
+          "modification": 131550372300000277,
+          "change": 131550372300000277,
+          "access": 131550372300000277
+        },
+        "iso": {
+          "creation": "2017-11-13T09:00:00.001234500Z",
+          "modification": "2017-11-13T09:00:30.000027700Z",
+          "change": "2017-11-13T09:00:30.000027700Z",
+          "access": "2017-11-13T09:00:30.000027700Z"
+        },
+        "usn_field": 0
+      },
+      "file_name_attributes": [
+        {
+          "name": "source.docx",
+          "flags": 1,
+          "parent_segment": 5,
+          "parent_generation": 1,
+          "ticks": {
+            "creation": 131550372000012345,
+            "modification": 131550372300000277,
+            "change": 131550372300000277,
+            "access": 131550372300000277
+          },
+          "iso": {
+            "creation": "2017-11-13T09:00:00.001234500Z",
+            "modification": "2017-11-13T09:00:30.000027700Z",
+            "change": "2017-11-13T09:00:30.000027700Z",
+            "access": "2017-11-13T09:00:30.000027700Z"
+          },
+          "delta_vs_si_ticks": {
+            "creation": 0,
+            "modification": 0,
+            "change": 0,
+            "access": 0
+          }
+        }
+      ],
+      "divergent_fields": [],
+      "hard_link_evidence": false,
+      "usn_events": [],
+      "stale_generation_alerts": [],
+      "stale_generation_events": [],
+      "journal_available_for_record": false,
+      "assessment": {
+        "hypotheses": [
+          {
+            "hypothesis": "SI and FN agree; no timestamp anomaly",
+            "confidence": "confirmed",
+            "basis": "all four field deltas are exactly 0 ticks"
+          }
+        ],
+        "definitive_history_claimable": true,
+        "note": "No SI/FN divergence."
+      }
+    },
+    {
+      "segment": 41,
+      "generation": 1,
+      "reference_count": 1,
+      "is_directory": false,
+      "filenames": [
+        "copied.docx"
+      ],
+      "si": {
+        "ticks": {
+          "creation": 131550372000012345,
+          "modification": 131550372300000277,
+          "change": 131550372300000277,
+          "access": 131550372300000277
+        },
+        "iso": {
+          "creation": "2017-11-13T09:00:00.001234500Z",
+          "modification": "2017-11-13T09:00:30.000027700Z",
+          "change": "2017-11-13T09:00:30.000027700Z",
+          "access": "2017-11-13T09:00:30.000027700Z"
+        },
+        "usn_field": 0
+      },
+      "file_name_attributes": [
+        {
+          "name": "copied.docx",
+          "flags": 1,
+          "parent_segment": 5,
+          "parent_generation": 1,
+          "ticks": {
+            "creation": 131550373200670001,
+            "modification": 131550373200670001,
+            "change": 131550373200670001,
+            "access": 131550373200670001
+          },
+          "iso": {
+            "creation": "2017-11-13T09:02:00.067000100Z",
+            "modification": "2017-11-13T09:02:00.067000100Z",
+            "change": "2017-11-13T09:02:00.067000100Z",
+            "access": "2017-11-13T09:02:00.067000100Z"
+          },
+          "delta_vs_si_ticks": {
+            "creation": 1200657656,
+            "modification": 900669724,
+            "change": 900669724,
+            "access": 900669724
+          }
+        }
+      ],
+      "divergent_fields": [
+        "access",
+        "change",
+        "creation",
+        "modification"
+      ],
+      "hard_link_evidence": false,
+      "usn_events": [
+        {
+          "usn": 100,
+          "ticks": 131550373200670001,
+          "iso": "2017-11-13T09:02:00.067000100Z",
+          "reasons": [
+            "FILE_CREATE",
+            "CLOSE"
+          ],
+          "reason_mask": 2147483904,
+          "name": "copied.docx",
+          "journal_generation": 1,
+          "parent_segment": 5,
+          "parent_generation": 1
+        }
+      ],
+      "stale_generation_alerts": [],
+      "stale_generation_events": [],
+      "journal_available_for_record": true,
+      "assessment": {
+        "hypotheses": [
+          {
+            "hypothesis": "Newly created file that inherited SI metadata (e.g. metadata-preserving copy or restore)",
+            "confidence": "corroborated",
+            "basis": "FILE_CREATE at the FN timestamp with SI carried over from a source"
+          }
+        ],
+        "definitive_history_claimable": false,
+        "note": "Divergence is not, by itself, evidence of tampering."
+      }
+    },
+    {
+      "segment": 50,
+      "generation": 1,
+      "reference_count": 1,
+      "is_directory": false,
+      "filenames": [
+        "renamed_final.txt"
+      ],
+      "si": {
+        "ticks": {
+          "creation": 131550373500000000,
+          "modification": 131550373600000000,
+          "change": 131550373600000000,
+          "access": 131550373600000000
+        },
+        "iso": {
+          "creation": "2017-11-13T09:02:30.000000000Z",
+          "modification": "2017-11-13T09:02:40.000000000Z",
+          "change": "2017-11-13T09:02:40.000000000Z",
+          "access": "2017-11-13T09:02:40.000000000Z"
+        },
+        "usn_field": 0
+      },
+      "file_name_attributes": [
+        {
+          "name": "renamed_final.txt",
+          "flags": 1,
+          "parent_segment": 5,
+          "parent_generation": 1,
+          "ticks": {
+            "creation": 131550373500000000,
+            "modification": 131550373600000000,
+            "change": 131550373600000000,
+            "access": 131550373600000000
+          },
+          "iso": {
+            "creation": "2017-11-13T09:02:30.000000000Z",
+            "modification": "2017-11-13T09:02:40.000000000Z",
+            "change": "2017-11-13T09:02:40.000000000Z",
+            "access": "2017-11-13T09:02:40.000000000Z"
+          },
+          "delta_vs_si_ticks": {
+            "creation": 0,
+            "modification": 0,
+            "change": 0,
+            "access": 0
+          }
+        }
+      ],
+      "divergent_fields": [],
+      "hard_link_evidence": false,
+      "usn_events": [
+        {
+          "usn": 200,
+          "ticks": 131550374000031337,
+          "iso": "2017-11-13T09:03:20.003133700Z",
+          "reasons": [
+            "RENAME_OLD_NAME",
+            "CLOSE"
+          ],
+          "reason_mask": 2147487744,
+          "name": "renamed_old.txt",
+          "journal_generation": 1,
+          "parent_segment": 5,
+          "parent_generation": 1
+        },
+        {
+          "usn": 208,
+          "ticks": 131550374000031337,
+          "iso": "2017-11-13T09:03:20.003133700Z",
+          "reasons": [
+            "RENAME_NEW_NAME",
+            "CLOSE"
+          ],
+          "reason_mask": 2147491840,
+          "name": "renamed_final.txt",
+          "journal_generation": 1,
+          "parent_segment": 5,
+          "parent_generation": 1
+        }
+      ],
+      "stale_generation_alerts": [],
+      "stale_generation_events": [],
+      "journal_available_for_record": true,
+      "assessment": {
+        "hypotheses": [
+          {
+            "hypothesis": "Same-volume rename (same segment/generation, only the name changed)",
+            "confidence": "corroborated",
+            "basis": "USN RENAME_OLD_NAME / RENAME_NEW_NAME pair"
+          }
+        ],
+        "definitive_history_claimable": true,
+        "note": "No SI/FN divergence."
+      }
+    },
+    {
+      "segment": 60,
+      "generation": 1,
+      "reference_count": 2,
+      "is_directory": false,
+      "filenames": [
+        "link_one.dat",
+        "link_two.dat"
+      ],
+      "si": {
+        "ticks": {
+          "creation": 131550374500000555,
+          "modification": 131550374600000000,
+          "change": 131550374600000000,
+          "access": 131550374600000000
+        },
+        "iso": {
+          "creation": "2017-11-13T09:04:10.000055500Z",
+          "modification": "2017-11-13T09:04:20.000000000Z",
+          "change": "2017-11-13T09:04:20.000000000Z",
+          "access": "2017-11-13T09:04:20.000000000Z"
+        },
+        "usn_field": 0
+      },
+      "file_name_attributes": [
+        {
+          "name": "link_one.dat",
+          "flags": 1,
+          "parent_segment": 5,
+          "parent_generation": 1,
+          "ticks": {
+            "creation": 131550374500000555,
+            "modification": 131550374600000000,
+            "change": 131550374600000000,
+            "access": 131550374600000000
+          },
+          "iso": {
+            "creation": "2017-11-13T09:04:10.000055500Z",
+            "modification": "2017-11-13T09:04:20.000000000Z",
+            "change": "2017-11-13T09:04:20.000000000Z",
+            "access": "2017-11-13T09:04:20.000000000Z"
+          },
+          "delta_vs_si_ticks": {
+            "creation": 0,
+            "modification": 0,
+            "change": 0,
+            "access": 0
+          }
+        },
+        {
+          "name": "link_two.dat",
+          "flags": 1,
+          "parent_segment": 5,
+          "parent_generation": 1,
+          "ticks": {
+            "creation": 131550375000009009,
+            "modification": 131550374600000000,
+            "change": 131550374600000000,
+            "access": 131550374600000000
+          },
+          "iso": {
+            "creation": "2017-11-13T09:05:00.000900900Z",
+            "modification": "2017-11-13T09:04:20.000000000Z",
+            "change": "2017-11-13T09:04:20.000000000Z",
+            "access": "2017-11-13T09:04:20.000000000Z"
+          },
+          "delta_vs_si_ticks": {
+            "creation": 500008454,
+            "modification": 0,
+            "change": 0,
+            "access": 0
+          }
+        }
+      ],
+      "divergent_fields": [
+        "creation"
+      ],
+      "hard_link_evidence": true,
+      "usn_events": [
+        {
+          "usn": 300,
+          "ticks": 131550375000009009,
+          "iso": "2017-11-13T09:05:00.000900900Z",
+          "reasons": [
+            "HARD_LINK_CHANGE",
+            "CLOSE"
+          ],
+          "reason_mask": 2147549184,
+          "name": "link_two.dat",
+          "journal_generation": 1,
+          "parent_segment": 5,
+          "parent_generation": 1
+        }
+      ],
+      "stale_generation_alerts": [],
+      "stale_generation_events": [],
+      "journal_available_for_record": true,
+      "assessment": {
+        "hypotheses": [
+          {
+            "hypothesis": "Multiple directory names reference one MFT record (hard link set)",
+            "confidence": "confirmed",
+            "basis": "ReferenceCount=2, 2 $FILE_NAME attributes"
+          },
+          {
+            "hypothesis": "A hard link was added while the journal was recording",
+            "confidence": "corroborated",
+            "basis": "USN HARD_LINK_CHANGE present for the current generation"
+          }
+        ],
+        "definitive_history_claimable": true,
+        "note": "Divergence is not, by itself, evidence of tampering."
+      }
+    },
+    {
+      "segment": 70,
+      "generation": 1,
+      "reference_count": 1,
+      "is_directory": false,
+      "filenames": [
+        "stomped.xlsx"
+      ],
+      "si": {
+        "ticks": {
+          "creation": 130330080000000000,
+          "modification": 130330944000000000,
+          "change": 131550377000808080,
+          "access": 130331808000000000
+        },
+        "iso": {
+          "creation": "2014-01-01T00:00:00.000000000Z",
+          "modification": "2014-01-02T00:00:00.000000000Z",
+          "change": "2017-11-13T09:08:20.080808000Z",
+          "access": "2014-01-03T00:00:00.000000000Z"
+        },
+        "usn_field": 0
+      },
+      "file_name_attributes": [
+        {
+          "name": "stomped.xlsx",
+          "flags": 1,
+          "parent_segment": 5,
+          "parent_generation": 1,
+          "ticks": {
+            "creation": 131550376000004242,
+            "modification": 131550376100000000,
+            "change": 131550376100000000,
+            "access": 131550376100000000
+          },
+          "iso": {
+            "creation": "2017-11-13T09:06:40.000424200Z",
+            "modification": "2017-11-13T09:06:50.000000000Z",
+            "change": "2017-11-13T09:06:50.000000000Z",
+            "access": "2017-11-13T09:06:50.000000000Z"
+          },
+          "delta_vs_si_ticks": {
+            "creation": 1220296000004242,
+            "modification": 1219432100000000,
+            "change": -900808080,
+            "access": 1218568100000000
+          }
+        }
+      ],
+      "divergent_fields": [
+        "access",
+        "change",
+        "creation",
+        "modification"
+      ],
+      "hard_link_evidence": false,
+      "usn_events": [],
+      "stale_generation_alerts": [],
+      "stale_generation_events": [],
+      "journal_available_for_record": false,
+      "assessment": {
+        "hypotheses": [
+          {
+            "hypothesis": "SI/FN divergence present, but no journal evidence is available",
+            "confidence": "inconclusive",
+            "basis": "Copy/restore, hard-link bookkeeping and manual timestamp edits all produce divergence; the on-disk record alone cannot separate them"
+          }
+        ],
+        "definitive_history_claimable": false,
+        "note": "Divergence is not, by itself, evidence of tampering."
+      }
+    },
+    {
+      "segment": 80,
+      "generation": 2,
+      "reference_count": 1,
+      "is_directory": false,
+      "filenames": [
+        "reused_now.csv"
+      ],
+      "si": {
+        "ticks": {
+          "creation": 131550380000000077,
+          "modification": 131550380000000077,
+          "change": 131550380000000077,
+          "access": 131550380000000077
+        },
+        "iso": {
+          "creation": "2017-11-13T09:13:20.000007700Z",
+          "modification": "2017-11-13T09:13:20.000007700Z",
+          "change": "2017-11-13T09:13:20.000007700Z",
+          "access": "2017-11-13T09:13:20.000007700Z"
+        },
+        "usn_field": 0
+      },
+      "file_name_attributes": [
+        {
+          "name": "reused_now.csv",
+          "flags": 1,
+          "parent_segment": 5,
+          "parent_generation": 1,
+          "ticks": {
+            "creation": 131550380000000077,
+            "modification": 131550380000000077,
+            "change": 131550380000000077,
+            "access": 131550380000000077
+          },
+          "iso": {
+            "creation": "2017-11-13T09:13:20.000007700Z",
+            "modification": "2017-11-13T09:13:20.000007700Z",
+            "change": "2017-11-13T09:13:20.000007700Z",
+            "access": "2017-11-13T09:13:20.000007700Z"
+          },
+          "delta_vs_si_ticks": {
+            "creation": 0,
+            "modification": 0,
+            "change": 0,
+            "access": 0
+          }
+        }
+      ],
+      "divergent_fields": [],
+      "hard_link_evidence": false,
+      "usn_events": [
+        {
+          "usn": 800,
+          "ticks": 131550380000000077,
+          "iso": "2017-11-13T09:13:20.000007700Z",
+          "reasons": [
+            "FILE_CREATE",
+            "CLOSE"
+          ],
+          "reason_mask": 2147483904,
+          "name": "reused_now.csv",
+          "journal_generation": 2,
+          "parent_segment": 5,
+          "parent_generation": 1
+        },
+        {
+          "usn": 600,
+          "ticks": 131550378000000000,
+          "iso": "2017-11-13T09:10:00.000000000Z",
+          "reasons": [
+            "FILE_CREATE",
+            "CLOSE"
+          ],
+          "reason_mask": 2147483904,
+          "name": "deleted_then.csv",
+          "journal_generation": 1,
+          "parent_segment": 5,
+          "parent_generation": 1
+        },
+        {
+          "usn": 700,
+          "ticks": 131550379000000011,
+          "iso": "2017-11-13T09:11:40.000001100Z",
+          "reasons": [
+            "FILE_DELETE",
+            "CLOSE"
+          ],
+          "reason_mask": 2147484160,
+          "name": "deleted_then.csv",
+          "journal_generation": 1,
+          "parent_segment": 5,
+          "parent_generation": 1
+        }
+      ],
+      "stale_generation_alerts": [
+        "USN 600 names generation 1 but segment now holds generation 2 (name in journal: deleted_then.csv; reasons: FILE_CREATE|CLOSE)",
+        "USN 700 names generation 1 but segment now holds generation 2 (name in journal: deleted_then.csv; reasons: FILE_DELETE|CLOSE)"
+      ],
+      "stale_generation_events": [
+        {
+          "usn": 600,
+          "ticks": 131550378000000000,
+          "iso": "2017-11-13T09:10:00.000000000Z",
+          "reasons": [
+            "FILE_CREATE",
+            "CLOSE"
+          ],
+          "reason_mask": 2147483904,
+          "name": "deleted_then.csv",
+          "journal_generation": 1,
+          "parent_segment": 5,
+          "parent_generation": 1
+        },
+        {
+          "usn": 700,
+          "ticks": 131550379000000011,
+          "iso": "2017-11-13T09:11:40.000001100Z",
+          "reasons": [
+            "FILE_DELETE",
+            "CLOSE"
+          ],
+          "reason_mask": 2147484160,
+          "name": "deleted_then.csv",
+          "journal_generation": 1,
+          "parent_segment": 5,
+          "parent_generation": 1
+        }
+      ],
+      "journal_available_for_record": true,
+      "assessment": {
+        "hypotheses": [
+          {
+            "hypothesis": "MFT slot was deleted and reused; stale journal events predate the current file",
+            "confidence": "confirmed",
+            "basis": "hard generation mismatch on the same segment"
+          }
+        ],
+        "definitive_history_claimable": true,
+        "note": "No SI/FN divergence."
+      }
+    }
+  ]
+}
