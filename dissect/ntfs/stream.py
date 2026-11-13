@@ -4,7 +4,40 @@ import io
 from typing import BinaryIO
 
 from dissect.util import lznt1
-from dissect.util.stream import RunlistStream
+from dissect.util.stream import AlignedStream, RunlistStream
+
+
+class ValidDataStream(AlignedStream):
+    """Wrap a stream and return zeroes when reading past the valid data length.
+
+    Non-resident NTFS attributes track a ``ValidDataLength`` that can be smaller than the ``FileSize``.
+    Data between the two was never written by the file owner, so NTFS guarantees it reads back as zeroes,
+    even though the allocated clusters on disk may still contain residue from previous data.
+
+    Args:
+        fh: The source file-like object to read valid data from.
+        valid_data_length: The amount of valid data in the source stream.
+        size: The size of this stream. Defaults to the size of the source stream.
+    """
+
+    def __init__(self, fh: BinaryIO, valid_data_length: int, size: int | None = None):
+        super().__init__(size if size is not None else fh.size)
+        self._fh = fh
+        self.valid_data_length = valid_data_length
+
+    def _read(self, offset: int, length: int) -> bytes:
+        if self.size is not None:
+            length = max(0, min(length, self.size - offset))
+
+        valid_remaining = self.valid_data_length - offset
+        if valid_remaining <= 0:
+            return b"\x00" * length
+
+        self._fh.seek(offset)
+        if length <= valid_remaining:
+            return self._fh.read(length)
+
+        return self._fh.read(valid_remaining) + b"\x00" * (length - valid_remaining)
 
 
 class CompressedRunlistStream(RunlistStream):

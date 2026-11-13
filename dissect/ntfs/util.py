@@ -15,7 +15,7 @@ from dissect.ntfs.c_ntfs import (
     SECTOR_SIZE,
 )
 from dissect.ntfs.exceptions import FilenameNotAvailableError, VolumeNotAvailableError
-from dissect.ntfs.stream import CompressedRunlistStream
+from dissect.ntfs.stream import CompressedRunlistStream, ValidDataStream
 
 if TYPE_CHECKING:
     from dissect.ntfs.attr import Attribute
@@ -126,20 +126,28 @@ class AttributeCollection(list):
         size = attrs[0].header.allocated_size if allocated else attrs[0].header.size
 
         if attrs[0].header.flags & ATTRIBUTE_FLAG_COMPRESSION_MASK:
-            return CompressedRunlistStream(
+            stream: BinaryIO = CompressedRunlistStream(
                 ntfs.fh,
                 runs,
                 size,
                 ntfs.cluster_size,
                 attrs[0].header.compression_unit,
             )
+        else:
+            stream = RunlistStream(
+                ntfs.fh,
+                runs,
+                size,
+                ntfs.cluster_size,
+            )
 
-        return RunlistStream(
-            ntfs.fh,
-            runs,
-            size,
-            ntfs.cluster_size,
-        )
+        # Data past the ValidDataLength was never written and must read back as zeroes, unless the
+        # allocated (slack) region was explicitly requested, which must retain its physical content
+        valid_data_size = attrs[0].header.valid_data_size
+        if not allocated and valid_data_size is not None and valid_data_size < size:
+            stream = ValidDataStream(stream, valid_data_size)
+
+        return stream
 
     def size(self, allocated: bool = False) -> int:
         """Retrieve the data stream size for this list of attributes.

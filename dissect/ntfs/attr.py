@@ -8,6 +8,7 @@ from dissect.util.ts import wintimestamp
 
 from dissect.ntfs.c_ntfs import ATTRIBUTE_TYPE_CODE, IO_REPARSE_TAG, c_ntfs
 from dissect.ntfs.exceptions import MftNotAvailableError, VolumeNotAvailableError
+from dissect.ntfs.stream import ValidDataStream
 from dissect.ntfs.util import ensure_volume, get_full_path, segment_reference, ts_to_ns, varint
 
 if TYPE_CHECKING:
@@ -176,6 +177,11 @@ class AttributeHeader:
         return self.header.Form.Nonresident.AllocatedLength if not self.resident else None
 
     @property
+    def valid_data_size(self) -> int | None:
+        """Return the valid data size if non-resident, else None."""
+        return self.header.Form.Nonresident.ValidDataLength if not self.resident else None
+
+    @property
     def lowest_vcn(self) -> int | None:
         """Return the lowest VCN if non-resident, else None."""
         return self.header.Form.Nonresident.LowestVcn if not self.resident else None
@@ -242,12 +248,20 @@ class AttributeHeader:
         ntfs = self.record.ntfs if self.record else None
         ensure_volume(ntfs)
 
-        return RunlistStream(
+        stream = RunlistStream(
             ntfs.fh,
             self.dataruns(),
             self.size,
             ntfs.cluster_size,
         )
+
+        # Data past the ValidDataLength was never written and must read back as zeroes,
+        # the allocated clusters on disk may still contain residue from previous data
+        valid_data_size = self.valid_data_size
+        if valid_data_size is not None and valid_data_size < self.size:
+            stream = ValidDataStream(stream, valid_data_size)
+
+        return stream
 
     def data(self) -> bytes:
         """Read and return all the data of this attribute.
