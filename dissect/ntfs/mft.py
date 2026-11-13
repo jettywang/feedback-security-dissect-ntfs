@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import ntpath
+from collections import OrderedDict
 from functools import cached_property, lru_cache
 from io import BytesIO
 from operator import itemgetter
-from typing import TYPE_CHECKING, BinaryIO
+from typing import TYPE_CHECKING, Any, BinaryIO
 
 from dissect.ntfs.attr import Attribute, AttributeHeader
 from dissect.ntfs.c_ntfs import (
@@ -26,6 +27,7 @@ from dissect.ntfs.exceptions import (
     NotAReparsePointError,
 )
 from dissect.ntfs.index import Index
+from dissect.ntfs.path import FilenameNamespace, PathReference, path_candidates
 from dissect.ntfs.util import AttributeMap, apply_fixup, segment_reference
 
 if TYPE_CHECKING:
@@ -33,7 +35,11 @@ if TYPE_CHECKING:
 
     from dissect.ntfs.index import IndexEntry
     from dissect.ntfs.ntfs import NTFS
+    from dissect.ntfs.path import PathCandidate
     from dissect.ntfs.util import AttributeCollection
+
+
+PATH_CACHE_SIZE = 4096
 
 
 class Mft:
@@ -48,6 +54,9 @@ class Mft:
         self.fh = fh
         self.ntfs = ntfs
 
+        self._generation_cache: OrderedDict[tuple[int, int], MftRecord] = OrderedDict()
+        self._path_cache: OrderedDict[tuple[int, int, bool, int, int], list[PathCandidate]] = OrderedDict()
+
         self.get = lru_cache(4096)(self.get)
 
     def __call__(self, ref: int | str | c_ntfs._MFT_SEGMENT_REFERENCE, *args, **kwargs) -> MftRecord:
@@ -57,6 +66,73 @@ class Mft:
     def root(self) -> MftRecord:
         """Return the root directory MFT record."""
         return self.get(FILE_NUMBER_ROOT)
+
+    def get_generation(self, segment: int, sequence: int) -> MftRecord | None:
+        """Return the record occupying ``segment`` only if it belongs to generation ``sequence``.
+
+        The MFT slot may have been reused by a new record since a reference was written. Comparing
+        the sequence number prevents callers from following a stale reference into unrelated data.
+
+        Args:
+            segment: The MFT segment (slot) number.
+            sequence: The expected sequence number (generation) of the record.
+
+        Returns:
+            The matching record, or ``None`` if the slot contains another generation or cannot be read.
+        """
+        key = (segment, sequence)
+        cached = self._generation_cache.get(key)
+        if cached is not None:
+            self._generation_cache.move_to_end(key)
+            return cached
+
+        try:
+            record = self.get(segment)
+        except Exception:
+            return None
+
+        if record.header.SequenceNumber != sequence:
+            return None
+
+        self._generation_cache[key] = record
+        self._generation_cache.move_to_end(key)
+        while len(self._generation_cache) > PATH_CACHE_SIZE:
+            self._generation_cache.popitem(last=False)
+
+        return record
+
+    def path_candidates(
+        self,
+        record: MftRecord,
+        ignore_dos: bool = False,
+        max_candidates: int = 1024,
+        max_depth: int = 256,
+    ) -> list[PathCandidate]:
+        """Enumerate all path candidates for a record, keyed by the record's generation.
+
+        The cache key includes the sequence number of the record, so a new record that reuses the same
+        MFT slot never inherits the cached paths of its predecessor.
+
+        Args:
+            record: The record to enumerate paths for.
+            ignore_dos: Ignore DOS namespace names.
+            max_candidates: Upper bound on candidates returned for a single record.
+            max_depth: Upper bound on the length of a parent chain.
+        """
+        key = (record.segment, record.header.SequenceNumber, ignore_dos, max_candidates, max_depth)
+
+        cached = self._path_cache.get(key)
+        if cached is not None:
+            self._path_cache.move_to_end(key)
+            return list(cached)
+
+        result = path_candidates(self, record, ignore_dos, max_candidates, max_depth)
+        self._path_cache[key] = result
+        self._path_cache.move_to_end(key)
+        while len(self._path_cache) > PATH_CACHE_SIZE:
+            self._path_cache.popitem(last=False)
+
+        return list(result)
 
     def _get_path(self, path: str, root: MftRecord | None = None) -> MftRecord:
         """Resolve a file path to the correct MFT record.
@@ -116,7 +192,10 @@ class Mft:
         """Return the parent directory record of the given record, using its ``$FILE_NAME`` attribute.
 
         The root directory (and any record without a ``$FILE_NAME`` attribute) is its own parent.
-        Records with multiple hard links have multiple parents, in which case a non-DOS name is preferred.
+        Records with multiple hard links have multiple parents; a non-DOS name is preferred only when
+        its parent reference still belongs to the expected generation. Otherwise the first name whose
+        parent reference resolves is used, and only when none resolve does the first name win so the
+        caller can observe the broken reference.
         """
         if record.segment == FILE_NUMBER_ROOT:
             return record
@@ -125,8 +204,14 @@ class Mft:
         if not attrs:
             return record
 
-        attr = next((attr for attr in attrs if attr.flags != FILE_NAME_DOS), attrs[0])
-        return self.get(segment_reference(attr.attr.ParentDirectory))
+        ordered = sorted(attrs, key=lambda attr: FilenameNamespace.from_flags(attr.flags) == FilenameNamespace.DOS)
+        for attr in ordered:
+            parent = PathReference.from_reference(attr.attr.ParentDirectory)
+            parent_record = self.get_generation(parent.segment, parent.sequence)
+            if parent_record is not None:
+                return parent_record
+
+        return self.get(segment_reference(ordered[0].attr.ParentDirectory))
 
     def get(self, ref: int | str | c_ntfs._MFT_SEGMENT_REFERENCE, root: MftRecord | None = None) -> MftRecord:
         """Retrieve an MFT record using a variety of methods.
@@ -331,20 +416,76 @@ class MftRecord:
         paths = self.full_paths(ignore_dos)
         return paths[0] if paths else None
 
+    def path_candidates(
+        self,
+        ignore_dos: bool = False,
+        max_candidates: int = 1024,
+        max_depth: int = 256,
+    ) -> list[PathCandidate]:
+        """Enumerate all path candidates for this record.
+
+        Every ``$FILE_NAME`` of this record and every ancestor name starts a candidate, so hard links,
+        DOS/Win32 name pairs and ambiguous parent chains are all visible. The result is cached in the
+        MFT keyed by the generation of this record, so a reused slot does not inherit stale paths.
+
+        Args:
+            ignore_dos: Ignore DOS file name entries.
+            max_candidates: Upper bound on candidates returned for this record.
+            max_depth: Upper bound on the length of a parent chain.
+
+        Raises:
+            MftNotAvailableError: If no MFT is available.
+        """
+        if not self.ntfs or not self.ntfs.mft:
+            raise MftNotAvailableError
+
+        return self.ntfs.mft.path_candidates(self, ignore_dos, max_candidates, max_depth)
+
     def full_paths(self, ignore_dos: bool = False) -> list[str]:
         """Return all full paths of this record.
+
+        Resolved candidates contribute their regular path. Candidates that cannot be fully resolved
+        contribute their placeholder rendering, which keeps the raw segment references for review.
+        Duplicate strings are collapsed while preserving discovery order.
 
         Args:
             ignore_dos: Ignore DOS file name entries.
         """
-        result = []
+        if not self.ntfs or not self.ntfs.mft:
+            result = []
+            for attr in self.attributes[ATTRIBUTE_TYPE_CODE.FILE_NAME]:
+                if ignore_dos and attr.flags == FILE_NAME_DOS:
+                    continue
+                result.append((attr.flags, attr.full_path()))
 
-        for attr in self.attributes[ATTRIBUTE_TYPE_CODE.FILE_NAME]:
-            if ignore_dos and attr.flags == FILE_NAME_DOS:
+            return [item[1] for item in sorted(result, key=itemgetter(0))]
+
+        resolved = []
+        unresolved = []
+        seen = set()
+        for candidate in self.path_candidates(ignore_dos):
+            path = candidate.path if candidate.resolved else candidate.legacy_path
+            if not path or path in seen:
                 continue
-            result.append((attr.flags, attr.full_path()))
+            seen.add(path)
+            (resolved if candidate.resolved else unresolved).append(path)
 
-        return [item[1] for item in sorted(result, key=itemgetter(0))]
+        return resolved + unresolved
+
+    def path_evidence(
+        self,
+        ignore_dos: bool = False,
+        max_candidates: int = 1024,
+        max_depth: int = 256,
+    ) -> list[dict[str, Any]]:
+        """Return the path candidates as JSON friendly dictionaries for a backend.
+
+        Args:
+            ignore_dos: Ignore DOS file name entries.
+            max_candidates: Upper bound on candidates returned for this record.
+            max_depth: Upper bound on the length of a parent chain.
+        """
+        return [candidate.as_dict() for candidate in self.path_candidates(ignore_dos, max_candidates, max_depth)]
 
     def is_dir(self) -> bool:
         """Return whether this record is a directory."""

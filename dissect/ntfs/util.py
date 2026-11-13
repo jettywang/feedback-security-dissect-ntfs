@@ -14,7 +14,8 @@ from dissect.ntfs.c_ntfs import (
     SECTOR_SHIFT,
     SECTOR_SIZE,
 )
-from dissect.ntfs.exceptions import FilenameNotAvailableError, VolumeNotAvailableError
+from dissect.ntfs.exceptions import VolumeNotAvailableError
+from dissect.ntfs.path import FilenameNamespace, PathReference, PathStatus, placeholder
 from dissect.ntfs.stream import CompressedRunlistStream
 
 if TYPE_CHECKING:
@@ -236,47 +237,70 @@ def ensure_volume(ntfs: NTFS) -> None:
         raise VolumeNotAvailableError
 
 
-def get_full_path(mft: Mft, name: str, parent: c_ntfs._MFT_SEGMENT_REFERENCE, seen: set[str] | None = None) -> str:
-    """Walk up parent file references to construct a full path.
+def get_full_path(
+    mft: Mft | None,
+    name: str,
+    parent: c_ntfs._MFT_SEGMENT_REFERENCE,
+    seen: set[str] | None = None,
+) -> str:
+    """Walk up parent file references to construct a single legacy full path.
+
+    This compatibility helper deliberately returns one string, even for records with multiple
+    ``$FILE_NAME`` attributes. It keeps the raw slot number and expected generation in placeholders
+    when a reference cannot be followed. Use :meth:`MftRecord.path_candidates
+    <dissect.ntfs.mft.MftRecord.path_candidates>` for the complete evidence set.
 
     Args:
-        mft: The MFT object to use for looking up file references.
+        mft: The MFT object to use for looking up file references, or ``None`` if unavailable.
         name: The file name to use.
         parent: The parent reference to start backtracking from.
-
-    Raises:
-        FilenameNotAvailableError: If an MFT record has no filename.
+        seen: Retained for call site compatibility. Internal cycle detection always applies.
     """
-    seen = seen or set()
+    if mft is None:
+        return name
 
     path = [name]
+    seen: set[tuple[int, int]] = set()
 
+    reference = PathReference.from_reference(parent)
     while True:
-        parent_ref = segment_reference(parent)
-        if parent_ref == FILE_NUMBER_ROOT:
+        if reference.segment == FILE_NUMBER_ROOT:
             break
 
-        if parent_ref in seen:
-            path.append("<recursion>")
+        if reference in seen:
+            path.append(placeholder(reference, PathStatus.CYCLE))
             break
 
-        seen.add(parent_ref)
+        seen.add(reference)
 
-        try:
-            record = mft.get(parent_ref)
-            if not record.filename:
-                raise FilenameNotAvailableError("No filename")  # noqa: TRY301
-
-            if record.header.SequenceNumber != parent.SequenceNumber:
-                path.append(f"<broken_reference_0x{parent_ref:x}#{parent.SequenceNumber}>")
+        record = mft.get_generation(reference.segment, reference.sequence)
+        if record is None:
+            try:
+                actual = mft.get(reference.segment)
+            except Exception:
+                path.append(placeholder(reference, PathStatus.MISSING_RECORD))
                 break
 
-            path.append(record.filename)
-
-            parent = record.attributes.FILE_NAME.attr.ParentDirectory
-        except Exception:
-            path.append(f"<unknown_segment_0x{parent_ref:x}>")
+            path.append(
+                placeholder(PathReference(reference.segment, actual.header.SequenceNumber), PathStatus.BROKEN_REFERENCE)
+            )
             break
+
+        try:
+            attrs = record.attributes[ATTRIBUTE_TYPE_CODE.FILE_NAME]
+        except Exception:
+            path.append(placeholder(reference, PathStatus.MISSING_RECORD))
+            break
+
+        if not attrs:
+            path.append(placeholder(reference, PathStatus.NO_FILENAME))
+            break
+
+        attr = next(
+            (attr for attr in attrs if FilenameNamespace.from_flags(attr.flags) != FilenameNamespace.DOS), attrs[0]
+        )
+        path.append(attr.file_name)
+        reference = PathReference.from_reference(attr.attr.ParentDirectory)
 
     return "\\".join(path[::-1])
 

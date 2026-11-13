@@ -8,6 +8,7 @@ from dissect.util.ts import wintimestamp
 
 from dissect.ntfs.c_ntfs import ATTRIBUTE_TYPE_CODE, IO_REPARSE_TAG, c_ntfs
 from dissect.ntfs.exceptions import MftNotAvailableError, VolumeNotAvailableError
+from dissect.ntfs.path import PathReference
 from dissect.ntfs.util import ensure_volume, get_full_path, segment_reference, ts_to_ns, varint
 
 if TYPE_CHECKING:
@@ -490,7 +491,24 @@ class FileName(AttributeRecord):
         return self.attr.FileName
 
     def full_path(self) -> str:
-        """Use the parent directory reference to try to generate a full path from this file name."""
+        """Use the parent directory reference to try to generate a full path from this file name.
+
+        This returns a single legacy string for compatibility. Unresolvable parent chains keep the raw
+        segment reference as a placeholder; use :meth:`MftRecord.path_candidates
+        <dissect.ntfs.mft.MftRecord.path_candidates>` to inspect every candidate and its status.
+        """
+        if self.record is None or not self.record.ntfs or not self.record.ntfs.mft:
+            return self.file_name
+
+        reference = PathReference.from_reference(self.attr.ParentDirectory)
+        for candidate in self.record.path_candidates():
+            if (
+                candidate.name == self.file_name
+                and candidate.reference.sequence == self.record.header.SequenceNumber
+                and candidate.parent_reference == reference
+            ):
+                return candidate.legacy_path
+
         return get_full_path(self.record.ntfs.mft, self.file_name, self.attr.ParentDirectory)
 
     def is_dir(self) -> bool:
