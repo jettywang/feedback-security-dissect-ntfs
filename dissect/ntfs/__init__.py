@@ -5,8 +5,9 @@ from dissect.ntfs.c_ntfs import ATTRIBUTE_TYPE_CODE, NTFS_SIGNATURE
 from dissect.ntfs.index import Index, IndexEntry
 from dissect.ntfs.mft import Mft, MftRecord
 from dissect.ntfs.ntfs import NTFS
+from dissect.ntfs.rename import RenameIdentity, RenameStatus, RenameTrace, RenameTracker, UnpairedReason, track_renames
 from dissect.ntfs.secure import ACE, ACL, Secure, SecurityDescriptor
-from dissect.ntfs.usnjrnl import UsnJrnl, UsnRecord
+from dissect.ntfs.usnjrnl import UsnJournalGap, UsnJrnl, UsnRecord
 
 __all__ = [
     "ACE",
@@ -21,8 +22,15 @@ __all__ = [
     "IndexEntry",
     "Mft",
     "MftRecord",
+    "RenameIdentity",
+    "RenameStatus",
+    "RenameTrace",
+    "RenameTracker",
     "Secure",
     "SecurityDescriptor",
+    "UnpairedReason",
+    "UsnJournalGap",
     "UsnJrnl",
     "UsnRecord",
+    "track_renames",
 ]
