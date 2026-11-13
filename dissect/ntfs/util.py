@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from dissect.ntfs.c_ntfs import (
         c_ntfs,
     )
+    from dissect.ntfs.integrity import StreamIntegrity
     from dissect.ntfs.mft import Mft
     from dissect.ntfs.ntfs import NTFS
 
@@ -167,6 +168,68 @@ class AttributeCollection(list):
 
         return self._get_dataruns()
 
+    def verify(self, strict: bool = False) -> StreamIntegrity:
+        """Verify the ``$ATTRIBUTE_LIST`` references and VCN chain of this non-resident stream.
+
+        This performs forensic validation instead of blindly sorting fragments by ``LowestVcn`` and
+        concatenating them. It checks the base record ownership, attribute type and name, the reference
+        sequence number of every extension record and the ``LowestVcn``/``HighestVcn`` continuity. Sparse
+        dataruns (explicit zero filling) and missing fragments (evidence gaps) are reported separately,
+        and overlapping fragments are never resolved by picking one after sorting.
+
+        Args:
+            strict: Raise :class:`~dissect.ntfs.exceptions.StreamVerificationError` when the stream cannot
+                be assembled completely instead of returning the report.
+
+        Returns:
+            The :class:`~dissect.ntfs.integrity.StreamIntegrity` report, including the fragment sources.
+        """
+        if self.header.resident:
+            raise TypeError("Resident attributes have no fragments to verify")
+
+        if self.header.flags & ATTRIBUTE_FLAG_COMPRESSION_MASK:
+            raise NotImplementedError("Verification is not supported for compressed streams")
+
+        from dissect.ntfs.integrity import verify_stream
+
+        return verify_stream(self, strict=strict)
+
+    def open_verified(self, allocated: bool = False, strict: bool = False) -> BinaryIO:
+        """Open this stream after verifying every fragment and its VCN coverage.
+
+        The returned file-like object carries an ``integrity`` attribute with the
+        :class:`~dissect.ntfs.integrity.StreamIntegrity` report. Reads from evidence gaps or overlapping
+        VCN ranges return explicit zero bytes rather than data from an arbitrary fragment; sparse runs are
+        reported distinctly in the integrity report.
+
+        Args:
+            allocated: Use the allocated stream size instead of the real stream size.
+            strict: Raise :class:`~dissect.ntfs.exceptions.StreamVerificationError` on an incomplete stream.
+
+        Raises:
+            VolumeNotAvailableError: If no volume is available for reading allocated clusters.
+            StreamVerificationError: If ``strict=True`` and verification fails.
+        """
+        if self.header.resident:
+            stream = self.header.open()
+            stream.integrity = _resident_integrity(self)
+            return stream
+
+        attrs = self._get_stream_attrs()
+        if attrs[0].header.flags & ATTRIBUTE_FLAG_COMPRESSION_MASK:
+            # Compressed streams use compression-unit aligned runlists with in-unit sparse runs, which do
+            # not map one-to-one onto the global VCN chain validated here. Refuse rather than report an
+            # integrity status that misinterprets compression metadata as gaps or overlaps.
+            raise NotImplementedError("Verified opening is not supported for compressed streams")
+
+        from dissect.ntfs.integrity import build_verified_stream
+
+        ntfs = attrs[0].record.ntfs
+        ensure_volume(ntfs)
+
+        size = attrs[0].header.allocated_size if allocated else attrs[0].header.size
+        return build_verified_stream(self, ntfs.fh, size, strict=strict)
+
     def _get_stream_attrs(self) -> list[Attribute]:
         return sorted((attr for attr in self if not attr.header.resident), key=lambda attr: attr.header.lowest_vcn)
 
@@ -178,6 +241,33 @@ class AttributeCollection(list):
             runs += attr.header.dataruns()
 
         return runs
+
+
+def _resident_integrity(collection: AttributeCollection) -> StreamIntegrity:
+    """Build a trivially complete integrity report for a resident stream.
+
+    Resident data lives entirely inside a single MFT record and therefore has no VCN chain, extension
+    records or dataruns to verify. The report is still attached so that callers can rely on the
+    ``integrity`` attribute being present for every verified stream.
+    """
+    from dissect.ntfs.integrity import Fragment, IntegrityStatus, StreamIntegrity
+
+    attribute = collection[0]
+    record = attribute.record
+    fragment = Fragment(
+        attribute=attribute,
+        segment=record.segment if record else None,
+        sequence=record.header.SequenceNumber if record and record.header else None,
+        lowest_vcn=0,
+        highest_vcn=0,
+        runs=[],
+    )
+    return StreamIntegrity(
+        status=IntegrityStatus.OK,
+        fragments=[fragment],
+        expected_vcns=0,
+        cluster_size=record.ntfs.cluster_size if record and record.ntfs else 0,
+    )
 
 
 def apply_fixup(data: bytes) -> bytes:

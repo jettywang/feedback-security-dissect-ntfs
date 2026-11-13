@@ -315,6 +315,19 @@ class AttributeList(AttributeRecord):
 
     def attributes(self) -> Iterator[Attribute]:
         """Iterate all entries within this ``$ATTRIBUTE_LIST`` and yield all embedded attributes."""
+        for _, _, attr in self.referenced_attributes():
+            yield attr
+
+    def referenced_attributes(self) -> Iterator[tuple[c_ntfs._ATTRIBUTE_LIST_ENTRY, MftRecord, Attribute]]:
+        """Iterate this ``$ATTRIBUTE_LIST`` and yield the list entry, referenced record and attribute.
+
+        Unlike :meth:`attributes`, this retains the originating ``$ATTRIBUTE_LIST`` entry for every
+        yielded attribute, which is required to verify the segment reference, sequence number,
+        attribute type/name and ``LowestVcn`` of extension record fragments against the entry.
+
+        Raises:
+            MftNotAvailableError: If there is no bounded MFT record to resolve references through.
+        """
         if not self.record:
             raise MftNotAvailableError("Can't iterate $ATTRIBUTE_LIST attributes without a bounded MFT record")
 
@@ -329,7 +342,8 @@ class AttributeList(AttributeRecord):
             record = self.record.ntfs.mft(segment)
 
             for attr_list in record.attributes.values():
-                yield from attr_list
+                for attr in attr_list:
+                    yield entry, record, attr
 
 
 class StandardInformation(AttributeRecord):

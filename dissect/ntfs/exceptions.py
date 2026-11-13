@@ -37,5 +37,15 @@ class NotAReparsePointError(Error):
     pass
 
 
+class StreamVerificationError(BrokenMftError):
+    """Raised when a non-resident stream cannot be assembled into a verified, complete stream.
+
+    This is raised in strict mode (``strict=True``) when verification of the
+    ``$ATTRIBUTE_LIST`` references and VCN chain of a multi-record stream fails, for example
+    because a fragment is missing (an evidence gap), fragments overlap, an extension record has
+    been reused (sequence number mismatch) or a fragment does not belong to the base record.
+    """
+
+
 class VolumeNotAvailableError(Error):
     pass

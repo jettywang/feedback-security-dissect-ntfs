@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
 
     from dissect.ntfs.index import IndexEntry
+    from dissect.ntfs.integrity import StreamIntegrity
     from dissect.ntfs.ntfs import NTFS
     from dissect.ntfs.util import AttributeCollection
 
@@ -462,6 +463,53 @@ class MftRecord:
             FileNotFoundError: If there are no attributes with the given name and type.
         """
         return self._get_stream_attributes(name, attr_type).open(allocated)
+
+    def open_verified(
+        self,
+        name: str = "",
+        attr_type: ATTRIBUTE_TYPE_CODE = ATTRIBUTE_TYPE_CODE.DATA,
+        allocated: bool = False,
+        strict: bool = False,
+    ) -> BinaryIO:
+        """Open a stream after verifying every MFT fragment that contributes its data.
+
+        The returned file-like object carries an ``integrity`` attribute with the
+        :class:`~dissect.ntfs.integrity.StreamIntegrity` report. Evidence gaps and overlapping fragments
+        read back as explicit zero bytes and are never silently stitched into seemingly valid data.
+
+        Args:
+            name: The stream name, an empty string for the "default" data stream.
+            attr_type: The attribute type to open a stream on.
+            allocated: Whether to use the real stream size or the allocated stream size.
+            strict: Raise :class:`~dissect.ntfs.exceptions.StreamVerificationError` when the stream cannot
+                be assembled completely.
+
+        Raises:
+            FileNotFoundError: If there are no attributes with the given name and type.
+            StreamVerificationError: If ``strict=True`` and verification fails.
+        """
+        return self._get_stream_attributes(name, attr_type).open_verified(allocated, strict=strict)
+
+    def stream_integrity(
+        self,
+        name: str = "",
+        attr_type: ATTRIBUTE_TYPE_CODE = ATTRIBUTE_TYPE_CODE.DATA,
+        strict: bool = False,
+    ) -> StreamIntegrity:
+        """Return the :class:`~dissect.ntfs.integrity.StreamIntegrity` report for the given stream.
+
+        This verifies ``$ATTRIBUTE_LIST`` references, base record ownership, attribute type and name,
+        reference sequence numbers and ``LowestVcn``/``HighestVcn`` continuity without opening the volume.
+
+        Args:
+            name: The stream name, an empty string for the "default" data stream.
+            attr_type: The attribute type to verify.
+            strict: Raise :class:`~dissect.ntfs.exceptions.StreamVerificationError` on an incomplete stream.
+
+        Raises:
+            FileNotFoundError: If there are no attributes with the given name and type.
+        """
+        return self._get_stream_attributes(name, attr_type).verify(strict=strict)
 
     def size(
         self,
