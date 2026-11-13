@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import warnings
 from enum import Enum, auto
 from functools import cached_property, lru_cache
 from typing import TYPE_CHECKING, Any, BinaryIO
@@ -13,6 +14,7 @@ from dissect.ntfs.exceptions import (
     FileNotFoundError,
     MftNotAvailableError,
 )
+from dissect.ntfs.upcase import UpcaseTable, fallback_uppercase
 from dissect.ntfs.util import apply_fixup, segment_reference
 
 if TYPE_CHECKING:
@@ -43,6 +45,21 @@ class Index:
         self.name = name
 
         self.root = IndexRoot(self, self.record.open(name, ATTRIBUTE_TYPE_CODE.INDEX_ROOT))
+
+        # Bind the volume's $UpCase table to filename comparisons on this index. If there's no
+        # trustworthy table available we degrade to a length-preserving Unicode uppercase, but
+        # say so explicitly instead of silently reporting files as missing.
+        self.upcase_table: UpcaseTable | None = None
+        if self.root.collation_rule == COLLATION.FILE_NAME:
+            if self.record.ntfs:
+                # NTFS.upcase_table warns once per volume if no usable table is available
+                self.upcase_table = self.record.ntfs.upcase_table
+            else:
+                warnings.warn(
+                    f"No volume available for filename index {name!r}; falling back to a "
+                    "length-preserving Unicode uppercase, which may not match the on-disk index order",
+                    stacklevel=2,
+                )
 
         if self.record.ntfs and self.record.ntfs.cluster_size <= self.root.bytes_per_index_buffer:
             self._vcn_size_shift = self.record.ntfs.cluster_size_shift
@@ -91,7 +108,7 @@ class Index:
             KeyError: If an exact match was requested but not found.
         """
         cmp_functions = {
-            COLLATION.FILE_NAME: _cmp_filename,
+            COLLATION.FILE_NAME: self._cmp_filename,
             COLLATION.NTOFS_ULONG: _cmp_ulong,
         }
 
@@ -99,22 +116,22 @@ class Index:
         if not cmp:
             raise NotImplementedError(f"No collation function for collation rule: {self.root.collation_rule}")
 
-        search_value = value
-        if cmp == _cmp_filename:
-            search_value = value.upper()
-
         entries = list(self.root.entries())
 
         while True:
-            entry = _bsearch(entries, search_value, cmp)
-            if not entry.is_node or (not entry.is_end and cmp(entry, search_value) == Match.Equal):
+            entry = _bsearch(entries, value, cmp)
+            if not entry.is_node or (not entry.is_end and cmp(entry, value) == Match.Equal):
                 break
             entries = list(self.index_buffer(entry.node_vcn).entries())
 
-        if exact and (entry.is_end or cmp(entry, search_value) != Match.Equal):
+        if exact and (entry.is_end or cmp(entry, value) != Match.Equal):
             raise KeyError(f"Value not found: {value}")
 
         return entry
+
+    def _cmp_filename(self, entry: IndexEntry, value: str) -> Match:
+        """Compare a filename index entry with a search value using this volume's collation."""
+        return _cmp_filename(entry, value, self.upcase_table)
 
     def entries(self) -> Iterator[IndexEntry]:
         """Yield all :class:`IndexEntry`'s in this :class:`Index`."""
@@ -350,16 +367,29 @@ def _bsearch(entries: list[IndexEntry], value: Any, cmp: Callable[[IndexEntry, A
     return entries[min_idx]
 
 
-def _cmp_filename(entry: IndexEntry, value: str) -> Match:
+def _cmp_filename(entry: IndexEntry, value: str, upcase_table: UpcaseTable | None = None) -> Match:
+    """Compare a filename index entry with a search value.
+
+    Both names are uppercased with the volume's own ``$UpCase`` table if one is bound to the index,
+    so the comparison stays consistent with the on-disk index order. Names that are case-equivalent
+    but differ in their original form compare equal, like they do on a live NTFS volume. Without a
+    table we degrade to a length-preserving Unicode uppercase; in neither case do we apply string
+    transformations that change the number of characters.
+    """
+    uppercase = upcase_table.uppercase if upcase_table is not None else fallback_uppercase
+
     # We could parse an entire _FILE_NAME here but for performance reasons we cheat
     # FileNameLength is at offset 64 and is a single byte
     length = entry.buf[64]
     # FileName starts at offset 66 and is double the FileNameLength because of UTF-16 encoding
-    test_value = entry.buf[66 : 66 + (length * 2)].decode("utf-16-le").upper()
+    test_value = entry.buf[66 : 66 + (length * 2)].decode("utf-16-le")
 
-    if value < test_value:
+    test_upcase = uppercase(test_value)
+    value_upcase = uppercase(value)
+
+    if value_upcase < test_upcase:
         return Match.Less
-    if value == test_value:
+    if value_upcase == test_upcase:
         return Match.Equal
     return Match.Greater
 

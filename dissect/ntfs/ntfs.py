@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from functools import cached_property
 from typing import TYPE_CHECKING, BinaryIO
 
@@ -9,6 +10,7 @@ from dissect.ntfs.c_ntfs import (
     DEFAULT_INDEX_SIZE,
     DEFAULT_RECORD_SIZE,
     DEFAULT_SECTOR_SIZE,
+    FILE_NUMBER_UPCASE,
     FILE_NUMBER_VOLUME,
     NTFS_SIGNATURE,
     c_ntfs,
@@ -16,6 +18,7 @@ from dissect.ntfs.c_ntfs import (
 from dissect.ntfs.exceptions import Error, FileNotFoundError, VolumeNotAvailableError
 from dissect.ntfs.mft import Mft, MftRecord
 from dissect.ntfs.secure import Secure
+from dissect.ntfs.upcase import UpcaseTable
 from dissect.ntfs.usnjrnl import UsnJrnl
 from dissect.ntfs.util import bsf
 
@@ -133,6 +136,33 @@ class NTFS:
                 self.usnjrnl = UsnJrnl(self.mft.get("$Extend\\$Usnjrnl").open("$J"), ntfs=self)
             except (FileNotFoundError, NotADirectoryError, VolumeNotAvailableError):
                 pass
+
+    @cached_property
+    def upcase_table(self) -> UpcaseTable | None:
+        """Return the :class:`~dissect.ntfs.upcase.UpcaseTable` of this volume.
+
+        The table is loaded from the ``$UpCase`` file and cached on this instance, so volumes never
+        share each other's mapping or failure state. Returns ``None`` and emits a warning if there's
+        no MFT available, the volume has no readable ``$UpCase`` file or the table is broken. Filename
+        index comparisons then degrade to a length-preserving Unicode uppercase, which may not match
+        the on-disk index order of this volume.
+        """
+        table = None
+        reason = "no $MFT available"
+
+        if self.mft:
+            try:
+                table = UpcaseTable(self.mft.get(FILE_NUMBER_UPCASE).open().read())
+            except (Error, EOFError, ValueError) as e:
+                reason = str(e) or type(e).__name__
+
+        if table is None:
+            warnings.warn(
+                f"No usable $UpCase table on this volume ({reason}); filename index comparisons fall back "
+                "to a length-preserving Unicode uppercase, which may not match the on-disk index order",
+                stacklevel=2,
+            )
+        return table
 
     @cached_property
     def serial(self) -> int | None:

@@ -17,6 +17,23 @@ def absolute_path(filename: str) -> Path:
     return Path(__file__).parent / filename
 
 
+def make_upcase_table(overrides: dict[str, str] | None = None) -> bytes:
+    """Build a small ``$UpCase``-like mapping for tests.
+
+    Maps every UTF-16 code unit to its single-character Unicode uppercase (or itself if the
+    uppercase form would change the character count), then applies the given overrides.
+    """
+    table = bytearray(0x20000)
+    for unit in range(0x10000):
+        char = chr(unit)
+        upper = char.upper()
+        mapped = ord(upper) if len(upper) == 1 else unit
+        table[unit * 2 : unit * 2 + 2] = mapped.to_bytes(2, "little")
+    for source, target in (overrides or {}).items():
+        table[ord(source) * 2 : ord(source) * 2 + 2] = ord(target).to_bytes(2, "little")
+    return bytes(table)
+
+
 def open_file_gz(name: str, mode: str = "rb") -> Iterator[BinaryIO]:
     with gzip.GzipFile(absolute_path(name), mode) as f:
         yield f
